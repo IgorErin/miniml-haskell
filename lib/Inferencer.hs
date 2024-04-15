@@ -68,8 +68,8 @@ defaultEnv =
         ("=", eqS)
       ]
   where
-    arith = Scheme.ofTy $ Arrow (Prm "int") $ Arrow (Prm "int") $ (Prm "int")
-    eqS = Scheme.ofTy $ Arrow (TyVar 0) $ Arrow (TyVar 0) $ (Prm "bool")
+    arith = Scheme.ofTy $ Arrow (Prm "int") $ Arrow (Prm "int") $ Prm "int"
+    eqS = Scheme.ofTy $ Arrow (TyVar 0) $ Arrow (TyVar 0) $ Prm "bool"
 
 lookupEnv :: Env -> String -> Infer (Subst.Subst, Ty)
 lookupEnv (Env env) name =

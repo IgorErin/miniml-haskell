@@ -1,0 +1,19 @@
+name:    hm-demo
+version: "0.0.0"
+
+dependencies:
+- base >=4.9.1.0 && <5
+- containers
+
+library:
+  source-dirs: lib
+  modules: Parsetree,Typedtree,Scheme
+
+# Test suite
+tests:
+  test1:
+    main: BasicSumTest.hs
+    source-dirs: tests
+    ghc-options: -Wall
+    dependencies:
+    - hspec >=2.0.0
