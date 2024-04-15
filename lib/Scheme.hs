@@ -1,3 +1,7 @@
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+
+{-# HLINT ignore "Use camelCase" #-}
+{-# HLINT ignore "Avoid lambda" #-}
 module Scheme where
 
 import Data.Set
@@ -16,7 +20,7 @@ free_vars (Scheme names ty) = Data.Set.difference (Typedtree.free_vars ty) names
 apply :: Subst -> Scheme -> Scheme
 apply sub (Scheme names ty) =
   let s2 = Data.Set.foldr (\k acc -> Subst.remove acc k) sub names
-   in Scheme (names) (Subst.apply s2 ty)
+   in Scheme names (Subst.apply s2 ty)
 
 ofTy :: Ty -> Scheme
 ofTy ty = Scheme (Typedtree.free_vars ty) ty

@@ -1,9 +1,15 @@
 {-# LANGUAGE InstanceSigs #-}
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+
+{-# HLINT ignore "Avoid lambda" #-}
+{-# HLINT ignore "Use tuple-section" #-}
+{-# HLINT ignore "Use record patterns" #-}
 
 module Inferencer where
 
 import Data.Map
 import Data.Set
+import Debug.Trace
 import Parsetree
 import Scheme
 import qualified Subst (Subst, apply, compose_all, empty, singleton, unify)
@@ -55,7 +61,7 @@ instantiate (Scheme vars ty) =
       let s = Subst.singleton name f1
       return (Subst.apply s typ)
 
-data Env = Env (Map String Scheme)
+newtype Env = Env (Map String Scheme)
 
 defaultEnv :: Env
 defaultEnv =
@@ -96,7 +102,7 @@ infer env (EConst _) = return (Subst.empty, Prm "int")
 infer env (EVar x) = lookupEnv env x
 infer env (ELam (PVar x) e1) = do
   tv <- freshVar
-  let env2 = extendEnv x (Scheme (Data.Set.empty) tv) env
+  let env2 = extendEnv x (Scheme Data.Set.empty tv) env
   (s, ty) <- infer env2 e1
   let trez = Arrow (Subst.apply s tv) ty
   return (s, trez)
@@ -106,7 +112,9 @@ infer env (EApp e1 e2) = do
   tv <- freshVar
   s3 <- unify (Subst.apply s2 t1) (Arrow t2 tv)
   let trez = Subst.apply s3 tv
-  final <- inferOfEither $ Subst.compose_all [s3, s2, s1]
+
+  final <- inferOfEither $ trace "HERRE" $ Subst.compose_all [s3, s2, s1]
+
   return (final, trez)
 infer env (EIf _ _ _) = undefined
 infer env (ELet _ _ _ _) = undefined

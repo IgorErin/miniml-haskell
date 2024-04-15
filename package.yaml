@@ -4,10 +4,21 @@ version: "0.0.0"
 dependencies:
 - base >=4.9.1.0 && <5
 - containers
+#profiling: True
+
+executables:
+  Demo:
+    source-dirs: app
+    # modules: Main
+    main: Main
+    dependencies: hm-demo
+    #ghc-options: -rtsopts
 
 library:
   source-dirs: lib
-  modules: Parsetree,Typedtree,Scheme
+  # modules: Parsetree,Typedtree,Scheme, Inferencer
+  # exposed-modules:
+  #   - Data.MyPkg
 
 # Test suite
 tests:
@@ -16,4 +27,6 @@ tests:
     source-dirs: tests
     ghc-options: -Wall
     dependencies:
+    - hm-demo
+    - HUnit
     - hspec >=2.0.0
