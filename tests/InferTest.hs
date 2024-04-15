@@ -10,15 +10,27 @@ import Typedtree
 
 infer1id :: Test
 infer1id =
-  TestCase $
-    assertEqual
-      ""
-      -- (Scheme.Scheme (Data.Set.fromList [1]) (Arrow (TyVar 1) (TyVar 1)))
-      (Arrow (TyVar 0) (TyVar 0))
-      (runInfer (ELam (PVar "x") (EVar "x")))
+  TestCase $ do
+    case runInfer term of
+      Left e -> assertFailure ("No type: " ++ show e)
+      Right tyAns -> assertEqual "" ty tyAns
+  where
+    ty = Arrow (TyVar 0) (TyVar 0)
+    term = (ELam (PVar "x") (EVar "x"))
+
+infer2incr :: Test
+infer2incr =
+  TestCase $ do
+    case runInfer term of
+      Left e -> assertFailure ("No type: " ++ show e)
+      Right tyAns -> assertEqual "" ty tyAns
+  where
+    ty = Arrow (TyVar 0) (TyVar 0)
+    term = ELam (PVar "x") (EApp (EApp (EVar "+") x) x)
+    x = EVar "x"
 
 inferTests :: Test
-inferTests = TestList [infer1id]
+inferTests = TestList [infer1id, infer2incr]
 
 tests :: Test
 tests = TestList [TestLabel "InferTests" inferTests]

@@ -2,9 +2,9 @@
 
 module Subst where
 
-import Data.Map
+import Data.Map -- hiding (empty)
 import Typedtree
-import Prelude (Either, Int, Maybe (Just, Nothing), undefined)
+import Prelude (Either, Int, Maybe (Just, Nothing), undefined, (==))
 
 newtype Subst = Subst (Map Int Ty)
 
@@ -25,7 +25,7 @@ apply (Subst s) ty@(TyVar b) =
 apply s (Arrow l r) = Arrow (apply s l) (apply s r)
 
 unify :: Ty -> Ty -> Either Error Subst
-unify = undefined
+unify (Prm l) (Prm r) | (l == r) = empty
 
 compose :: Subst -> Subst -> Either Error Subst
 compose = undefined

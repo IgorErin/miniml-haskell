@@ -3,6 +3,7 @@ module Typedtree where
 import Data.Set
 
 data Error = OccursCheck | NoVariable String | UnificationFailed Ty Ty
+  deriving (Eq, Show)
 
 data Ty
   = Prm String

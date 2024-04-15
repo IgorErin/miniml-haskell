@@ -6,7 +6,7 @@ import Data.Map
 import Data.Set
 import Parsetree
 import Scheme
-import qualified Subst (Subst, apply, empty, singleton)
+import qualified Subst (Subst, apply, compose_all, empty, singleton, unify)
 import Typedtree
 import Prelude hiding (fail)
 
@@ -24,17 +24,17 @@ instance Applicative Infer where
     Infer
       ( \st ->
           let (st0, f) = fa st
-           in let (st1, arg) = farg st0
-               in case (f, arg) of
-                    (Right f, Right arg) -> (st1, Right (f arg))
+              (st1, arg) = farg st0
+           in case (f, arg) of
+                (Right f, Right arg) -> (st1, Right (f arg))
       )
 
 instance Monad Infer where
-  -- return a = Infer $ \x -> (x, Right a)
   (>>=) (Infer m) f = Infer $ \st ->
     let (st0, x) = m st
      in case x of
           Right x -> let (Infer rhs) = f x in rhs st0
+          Left e -> (st0, Left e)
 
 fail :: Error -> Infer a
 fail e = Infer (\st -> (st, Left e))
@@ -58,7 +58,15 @@ instantiate (Scheme vars ty) =
 data Env = Env (Map String Scheme)
 
 defaultEnv :: Env
-defaultEnv = Env $ Data.Map.fromList [("*", arith), ("=", eqS)]
+defaultEnv =
+  Env $
+    Data.Map.fromList
+      [ ("*", arith),
+        ("/", arith),
+        ("-", arith),
+        ("+", arith),
+        ("=", eqS)
+      ]
   where
     arith = Scheme.ofTy $ Arrow (Prm "int") $ Arrow (Prm "int") $ (Prm "int")
     eqS = Scheme.ofTy $ Arrow (TyVar 0) $ Arrow (TyVar 0) $ (Prm "bool")
@@ -73,6 +81,16 @@ lookupEnv (Env env) name =
 
 extendEnv k v (Env m) = Env (Data.Map.insert k v m)
 
+applyEnv s1 (Env m) =
+  Env (fmap (Scheme.apply s1) m)
+
+inferOfEither :: Either Error e -> Infer e
+inferOfEither (Left e) = fail e
+inferOfEither (Right x) = return x
+
+unify :: Ty -> Ty -> Infer Subst.Subst
+unify a b = inferOfEither $ Subst.unify a b
+
 infer :: Env -> Parsetree.Expr -> Infer (Subst.Subst, Ty)
 infer env (EConst _) = return (Subst.empty, Prm "int")
 infer env (EVar x) = lookupEnv env x
@@ -83,13 +101,22 @@ infer env (ELam (PVar x) e1) = do
   let trez = Arrow (Subst.apply s tv) ty
   return (s, trez)
 infer env (EApp e1 e2) = do
-  undefined
+  (s1, t1) <- infer env e1
+  (s2, t2) <- infer (applyEnv s1 env) e2
+  tv <- freshVar
+  s3 <- unify (Subst.apply s2 t1) (Arrow t2 tv)
+  let trez = Subst.apply s3 tv
+  final <- inferOfEither $ Subst.compose_all [s3, s2, s1]
+  return (final, trez)
+infer env (EIf _ _ _) = undefined
+infer env (ELet _ _ _ _) = undefined
 
+runInfer :: Parsetree.Expr -> Either Error Ty
 runInfer e =
   let (Infer f) = infer defaultEnv e
    in case snd $ f 0 of
-        Left _ -> undefined
-        Right (_, ty) -> ty
+        Left e -> Left e
+        Right (_, ty) -> Right ty
 
 basicSum :: Int -> Int -> Int
 basicSum x y = x + y
