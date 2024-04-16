@@ -10,11 +10,23 @@ import Debug.Trace
 data Error = OccursCheck | NoVariable String | UnificationFailed Ty Ty
   deriving (Eq, Show)
 
+-- instance Show Error where
+--   show _ = "FUCK"
+
 data Ty
-  = Prm String
-  | TyVar Int
-  | Arrow Ty Ty
-  deriving (Eq, Show)
+  = Prm !String
+  | TyVar !Int
+  | Arrow !Ty !Ty
+  deriving (Eq)
+
+instance Show Ty where
+  show ty = trace "show Ty" $ helper 2 ty
+    where
+      helper 0 _ = "FUCK"
+      helper n _ | n < 0 = undefined
+      helper _ (Prm s) = s
+      helper _ (TyVar v) = "'" ++ show v
+      helper n (Arrow left right) = "(" ++ (helper (n - 1) left) ++ " -> " ++ (helper (n - 1) right) ++ ")"
 
 occurs_in :: Int -> Ty -> Bool
 occurs_in v ty =

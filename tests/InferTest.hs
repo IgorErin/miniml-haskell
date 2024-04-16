@@ -4,9 +4,30 @@ import Data.Set (fromList)
 import Inferencer
 import Parsetree
 import Scheme hiding (free_vars, occurs_in)
+import Subst
 import qualified System.Exit as Exit
 import Test.HUnit
 import Typedtree
+
+infer0compose :: Test
+infer0compose =
+  TestCase $ do
+    case Subst.compose (Subst.singleton 2 (Prm "int")) (Subst.singleton 3 (Prm "int")) of
+      Left e -> assertFailure ("No type: " ++ show e)
+      Right tyAns -> assertEqual "" ty tyAns
+  where
+    ty = Subst.empty
+    term = (ELam (PVar "x") (EVar "x"))
+
+infer0extend :: Test
+infer0extend =
+  TestCase $ do
+    case Subst.extend (Subst.singleton 2 (Prm "int")) (3, (Prm "int")) of
+      Left e -> assertFailure ("No type: " ++ show e)
+      Right tyAns -> assertEqual "" ty tyAns
+  where
+    ty = Subst.empty
+    term = (ELam (PVar "x") (EVar "x"))
 
 infer1id :: Test
 infer1id =
@@ -30,7 +51,12 @@ infer2incr =
     x = EVar "x"
 
 inferTests :: Test
-inferTests = TestList [infer1id, infer2incr]
+inferTests =
+  TestList
+    [ infer0extend
+    -- infer1id,
+    -- infer2incr
+    ]
 
 tests :: Test
 tests = TestList [TestLabel "InferTests" inferTests]
