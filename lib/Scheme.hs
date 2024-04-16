@@ -8,7 +8,7 @@ import Data.Set
 import Subst
 import Typedtree
 
-data Scheme = Scheme (Set Int) Ty
+data Scheme = Scheme (Set Int) Ty deriving (Show)
 
 occurs_in :: Int -> Scheme -> Bool
 occurs_in v (Scheme names ty) =

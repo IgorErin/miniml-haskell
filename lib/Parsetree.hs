@@ -3,8 +3,9 @@ module Parsetree where
 data RecFlag
     = Recursive
     | NonRecursive
+    deriving (Show)
 
-newtype Pattern = PVar String
+newtype Pattern = PVar String deriving (Show)
 
 data Expr
     = EConst Int
@@ -13,3 +14,4 @@ data Expr
     | ELam Pattern Expr
     | EApp Expr Expr
     | ELet RecFlag Pattern Expr Expr
+    deriving (Show)

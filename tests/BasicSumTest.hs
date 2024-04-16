@@ -3,8 +3,6 @@ module Main where
 import Data.Set (fromList)
 import InferTest (inferTests)
 import Inferencer
-import Parsetree
-import Scheme hiding (free_vars, occurs_in)
 import qualified System.Exit as Exit
 import Test.HUnit
 import Typedtree

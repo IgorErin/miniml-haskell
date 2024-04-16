@@ -19,6 +19,10 @@ library:
   # modules: Parsetree,Typedtree,Scheme, Inferencer
   # exposed-modules:
   #   - Data.MyPkg
+  ghc-options: -fwarn-name-shadowing
+  dependencies:
+    - strict-base >=0.4.0.0
+
 
 # Test suite
 tests:
@@ -30,3 +34,4 @@ tests:
     - hm-demo
     - HUnit
     - hspec >=2.0.0
+    - strict-base >=0.4.0.0
