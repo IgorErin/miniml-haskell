@@ -1,7 +1,7 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE InstanceSigs #-}
+{-# OPTIONS_GHC -Wincomplete-patterns  -fwarn-name-shadowing #-}
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
-{-# OPTIONS_GHC -Wno-unrecognised-pragmas -Wincomplete-patterns  -fwarn-name-shadowing #-}
 
 {-# HLINT ignore "Avoid lambda" #-}
 {-# HLINT ignore "Use tuple-section" #-}
@@ -9,12 +9,13 @@
 
 module Inferencer where
 
+import Data.Char (generalCategory)
 import Data.Map
 import Data.Set
 import Debug.Trace
 import Parsetree
 import Scheme
-import qualified Subst (Subst, apply, compose_all, empty, singleton, unify)
+import qualified Subst (Subst, apply, compose, compose_all, empty, singleton, unify)
 import Typedtree
 import Prelude hiding (fail)
 
@@ -22,8 +23,8 @@ newtype Infer a = Infer (Int -> (Int, Either Error a))
 
 instance Functor Infer where
   fmap f (Infer i) = Infer (\a -> map2 (fmap f) (i a))
-   where
-    map2 foo (a, b) = (a, foo b)
+    where
+      map2 foo (a, b) = (a, foo b)
 
 instance Applicative Infer where
   pure a = Infer $ \x -> (x, Right a)
@@ -56,28 +57,32 @@ freshVar = fmap TyVar fresh
 instantiate :: Scheme -> Infer Ty
 instantiate (Scheme vars t) =
   Data.Set.foldr f (return t) vars
- where
-  f name ty = do
-    f1 <- freshVar
-    typ <- ty
-    let s = Subst.singleton name f1
-    return (Subst.apply s typ)
+  where
+    f name ty = do
+      f1 <- freshVar
+      typ <- ty
+      let s = Subst.singleton name f1
+      return (Subst.apply s typ)
 
 newtype Env = Env (Map String Scheme) deriving (Show)
+
+freeVarsEnv :: Env -> Data.Set.Set Int
+freeVarsEnv (Env env) =
+  Data.Map.foldl (\acc v -> Data.Set.union acc (Scheme.free_vars v)) Data.Set.empty env
 
 defaultEnv :: Env
 defaultEnv =
   Env $
     Data.Map.fromList
-      [ ("*", arith)
-      , ("/", arith)
-      , ("-", arith)
-      , ("+", arith)
-      , ("=", eqS)
+      [ ("*", arith),
+        ("/", arith),
+        ("-", arith),
+        ("+", arith),
+        ("=", eqS)
       ]
- where
-  arith = Scheme.ofTy $ Arrow (Prm "int") $ Arrow (Prm "int") (Prm "int")
-  eqS = Scheme.ofTy $ Arrow (TyVar 0) $ Arrow (TyVar 0) $ Prm "bool"
+  where
+    arith = Scheme.ofTy $ Arrow (Prm "int") $ Arrow (Prm "int") (Prm "int")
+    eqS = Scheme.ofTy $ Arrow (TyVar 0) $ Arrow (TyVar 0) $ Prm "bool"
 
 lookupEnv :: Env -> String -> Infer (Subst.Subst, Ty)
 lookupEnv (Env env) name =
@@ -99,33 +104,55 @@ inferOfEither (Right x) = return x
 unify :: Ty -> Ty -> Infer Subst.Subst
 unify a b = inferOfEither $ Subst.unify a b
 
+generalize :: Env -> Ty -> Scheme
+generalize env ty = Scheme free ty
+  where
+    free = Data.Set.difference (Typedtree.free_vars ty) (freeVarsEnv env)
+
 infer :: Env -> Parsetree.Expr -> Infer (Subst.Subst, Ty)
-infer env (EConst _) = return (Subst.empty, Prm "int")
+infer env (EConst (PConst_int _)) = return (Subst.empty, Prm "int")
+infer env (EConst (PConst_bool _)) = return (Subst.empty, Prm "bool")
 infer env (EVar x) = lookupEnv env x
 infer env (ELam (PVar x) e1) = do
   tv <- freshVar
   let env2 = extendEnv x (Scheme Data.Set.empty tv) env
-  -- _ <- trace ("env2" ++ show env2) (return 1)
   (s, ty) <- infer env2 e1
-  -- _ <- trace ("Body is" ++ show ty) (return 1)
   let trez = Arrow (Subst.apply s tv) ty
   return (s, trez)
 infer env (EApp e1 e2) = do
-  -- _ <- trace (show __LINE__) (return 1)
   (s1, t1) <- infer env e1
-  -- _ <- trace (show __LINE__ ++ "t1 = " ++ show t1) (return 1)
   (s2, t2) <- infer (applyEnv s1 env) e2
-  -- _ <- trace (show __LINE__) (return 1)
   tv <- freshVar
   s3 <- unify (Subst.apply s2 t1) (Arrow t2 tv)
-  -- _ <- trace (show __LINE__) (return 1)
   let trez = Subst.apply s3 tv
-  -- _ <- trace (show __LINE__) (return 1)
   final <- inferOfEither $ Subst.compose_all [s3, s2, s1]
-  -- _ <- trace (show __LINE__) (return 1)
   return (final, trez)
-infer env (EIf _ _ _) = undefined
-infer env (ELet _ _ _ _) = undefined
+infer env (EIf c th el) = do
+  (s1, t1) <- infer env c
+  (s2, t2) <- infer env th
+  (s3, t3) <- infer env el
+  s4 <- unify t1 (Prm "bool")
+  s5 <- unify t2 t3
+  final_subst <- inferOfEither $ Subst.compose_all [s5, s4, s3, s2, s1]
+  return (final_subst, Subst.apply s5 t2)
+infer env (ELet NonRecursive (PVar x) e1 e2) = do
+  (s1, t1) <- infer env e1
+  let env2 = (applyEnv s1 env)
+  let t2 = generalize env2 t1
+  (s2, t3) <- infer (extendEnv x t2 env2) e2
+  final_subst <- inferOfEither $ Subst.compose s1 s2
+  return (final_subst, t3)
+infer env (ELet Recursive (PVar x) e1 e2) = do
+  tv <- freshVar
+  let env2 = extendEnv x (Scheme Data.Set.empty tv) env
+  (s1, t1) <- infer env2 e1
+  s2 <- unify (Subst.apply s1 tv) t1
+  s <- inferOfEither $ Subst.compose s2 s1
+  let env3 = applyEnv s env2
+  let t2 = generalize env3 (Subst.apply s tv)
+  (s3, t3) <- infer (extendEnv x t2 (applyEnv s env)) e2
+  final_subst <- inferOfEither $ Subst.compose s s3
+  return (final_subst, t3)
 
 runInfer :: Parsetree.Expr -> Either Error Ty
 runInfer expr =

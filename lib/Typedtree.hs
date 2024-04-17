@@ -22,25 +22,25 @@ data Ty
 
 instance Show Ty where
   show !ty = let rez = helper 3 ty in rez
-   where
-    helper 0 _ = "FUCK"
-    helper n _ | n < 0 = undefined
-    helper _ (Prm s) = s
-    helper _ (TyVar v) = "'" ++ show v
-    helper n (Arrow left right) = "(" ++ helper (n - 1) left ++ " -> " ++ helper (n - 1) right ++ ")"
+    where
+      helper 0 _ = "FUCK"
+      helper n _ | n < 0 = undefined
+      helper _ (Prm s) = s
+      helper _ (TyVar v) = "'" ++ show v
+      helper n (Arrow left right) = "(" ++ helper (n - 1) left ++ " -> " ++ helper (n - 1) right ++ ")"
+
+(@->) = Arrow
 
 occurs_in :: Int -> Ty -> Bool
-occurs_in v ty =
-  -- trace ("Occurs " ++ show v ++ "in " ++ show ty ++ "?") $
-  helper v ty
- where
-  helper v (TyVar !x) = x == v
-  helper v (Arrow !l !r) = helper v l || helper v r
-  helper v (Prm _) = False
+occurs_in = helper
+  where
+    helper v (TyVar !x) = x == v
+    helper v (Arrow !l !r) = helper v l || helper v r
+    helper v (Prm _) = False
 
 free_vars :: Ty -> Set Int
 free_vars = helper empty
- where
-  helper acc (TyVar v) = insert v acc
-  helper acc (Prm _) = acc
-  helper acc (Arrow l r) = helper (helper acc r) l
+  where
+    helper acc (TyVar v) = insert v acc
+    helper acc (Prm _) = acc
+    helper acc (Arrow l r) = helper (helper acc r) l

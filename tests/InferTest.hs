@@ -12,17 +12,17 @@ infer0compose =
     case Subst.compose (Subst.singleton 2 (Prm "int")) (Subst.singleton 3 (Prm "int")) of
       Left e -> assertFailure ("No type: " ++ show e)
       Right tyAns -> assertEqual "" ty tyAns
- where
-  ty = Subst.ofList [(2, Prm "int"), (3, Prm "int")]
+  where
+    ty = Subst.ofList [(2, Prm "int"), (3, Prm "int")]
 
 infer0extend :: Test
 infer0extend =
   TestCase $ do
-    case Subst.extend (Subst.singleton 2 (Prm "int")) (3, Prm "int") of
+    case Subst.extend (Subst.singleton 2 (Prm "int")) 3 (Prm "int") of
       Left e -> assertFailure ("No type: " ++ show e)
       Right tyAns -> assertEqual "" ty tyAns
- where
-  ty = Subst.ofList [(3, Prm "int"), (2, Prm "int")]
+  where
+    ty = Subst.ofList [(3, Prm "int"), (2, Prm "int")]
 
 infer1id :: Test
 infer1id =
@@ -30,9 +30,9 @@ infer1id =
     case runInfer term of
       Left e -> assertFailure ("No type for '" ++ show term ++ ": " ++ show e)
       Right tyAns -> assertEqual "" ty tyAns
- where
-  ty = Arrow (TyVar 0) (TyVar 0)
-  term = ELam (PVar "x") (EVar "x")
+  where
+    ty = Arrow (TyVar 0) (TyVar 0)
+    term = ELam (PVar "x") (EVar "x")
 
 infer2part1 :: Test
 infer2part1 =
@@ -40,9 +40,9 @@ infer2part1 =
     case runInfer term of
       Left e -> assertFailure ("No type for '" ++ show term ++ "':  " ++ show e)
       Right tyAns -> assertEqual "" ty tyAns
- where
-  ty = Arrow (Prm "int") (Prm "int")
-  term = EApp (EVar "+") (EConst 1)
+  where
+    ty = Arrow (Prm "int") (Prm "int")
+    term = EApp (EVar "+") (econst_int 1)
 
 infer3twice :: Test
 infer3twice =
@@ -50,10 +50,27 @@ infer3twice =
     case runInfer term of
       Left e -> assertFailure ("No type for '" ++ show term ++ "':  " ++ show e)
       Right tyAns -> assertEqual "" ty tyAns
- where
-  ty = Arrow (Prm "int") (Prm "int")
-  term = ELam (PVar "x") (EApp (EApp (EVar "+") x) x)
-  x = EVar "x"
+  where
+    ty = Arrow (Prm "int") (Prm "int")
+    term = ELam (PVar "x") (EApp (EApp (EVar "+") x) x)
+    x = EVar "x"
+
+infer4div :: Test
+infer4div =
+  TestCase $ do
+    case runInfer term of
+      Left e -> assertFailure ("No type for '" ++ show term ++ "':  " ++ show e)
+      Right tyAns -> assertEqual "" ty tyAns
+  where
+    ty = Arrow (Prm "int") $ Arrow (Prm "int") (Prm "int")
+    term =
+      ELet
+        Recursive
+        (PVar "test1")
+        (ELam (PVar "x") (ELam (PVar "y") (EApp (EApp (EVar "/") x) y)))
+        (EVar "test1")
+    x = EVar "x"
+    y = EVar "y"
 
 infer4fix :: Test
 infer4fix =
@@ -61,24 +78,54 @@ infer4fix =
     case runInfer term of
       Left e -> assertFailure ("No type for '" ++ show term ++ "':  " ++ show e)
       Right tyAns -> assertEqual "" ty tyAns
- where
-  ty = Arrow (Prm "int") (Prm "int")
-  term =
-    ELet
-      Recursive
-      (PVar "fix")
-      (ELam (PVar "f") (EApp (EVar "f") (EApp (EVar "fix") (EVar "f"))))
-      (EVar "fix")
-  x = EVar "x"
+  where
+    ty = ((TyVar 3) @-> (TyVar 3)) @-> (TyVar 3)
+    term =
+      ELet
+        Recursive
+        (PVar "fix")
+        (ELam (PVar "f") (EApp (EVar "f") (EApp (EVar "fix") (EVar "f"))))
+        (EVar "fix")
+
+infer5nonrec :: Test
+infer5nonrec =
+  TestCase $ do
+    case runInfer term of
+      Left e -> assertFailure ("No type for '" ++ show term ++ "':  " ++ show e)
+      Right tyAns -> assertEqual "" ty tyAns
+  where
+    ty = Prm "int"
+    term =
+      ELet
+        NonRecursive
+        (PVar "x")
+        (Parsetree.econst_int 55)
+        (EVar "x")
+
+failingTest1if :: Test
+failingTest1if =
+  TestCase $ do
+    case runInfer term of
+      Left e -> assertEqual "" (UnificationFailed (Prm "bool") (Prm "int")) e
+      Right _ -> assertFailure "Shouldn't typecheck"
+  where
+    term =
+      EIf
+        (EConst (PConst_bool True))
+        (EConst (PConst_bool True))
+        (EConst (PConst_int 0))
 
 inferTests :: Test
 inferTests =
   TestList
-    [ infer0extend
-    , infer1id
-    , infer2part1
-    , infer3twice
-    , infer4fix
+    [ infer0extend,
+      infer1id,
+      infer2part1,
+      infer3twice,
+      infer4div,
+      infer4fix,
+      infer5nonrec,
+      TestList [failingTest1if]
     ]
 
 tests :: Test
