@@ -22,6 +22,9 @@ library:
   ghc-options: -fwarn-name-shadowing
   dependencies:
     - strict-base >=0.4.0.0
+    - megaparsec
+    - parser-combinators
+    - text
 
 
 # Test suite
@@ -35,3 +38,6 @@ tests:
     - HUnit
     - hspec >=2.0.0
     - strict-base >=0.4.0.0
+    - tasty          >=1.4
+    - tasty-golden   >=2.3.5
+    - tasty-hunit    >=0.10.1
