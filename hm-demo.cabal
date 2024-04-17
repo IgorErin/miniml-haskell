@@ -1,0 +1,69 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.36.0.
+--
+-- see: https://github.com/sol/hpack
+
+name:           hm-demo
+version:        0.0.0
+build-type:     Simple
+
+library
+  exposed-modules:
+      Inferencer
+      Lexer
+      Parser
+      ParserUtils
+      Parsetree
+      Scheme
+      Subst
+      Typedtree
+  other-modules:
+      Paths_hm_demo
+  hs-source-dirs:
+      lib
+  ghc-options: -fwarn-name-shadowing
+  build-depends:
+      base >=4.9.1.0 && <5
+    , containers
+    , megaparsec
+    , parser-combinators
+    , strict-base >=0.4.0.0
+    , text
+  default-language: Haskell2010
+
+executable Demo
+  main-is: Main.hs
+  other-modules:
+      Paths_hm_demo
+  hs-source-dirs:
+      app
+  ghc-options: -main-is Main
+  build-depends:
+      base >=4.9.1.0 && <5
+    , containers
+    , hm-demo
+  default-language: Haskell2010
+
+test-suite test1
+  type: exitcode-stdio-1.0
+  main-is: BasicSumTest.hs
+  other-modules:
+      InferTest
+      ParserTest
+      Utils
+      Paths_hm_demo
+  hs-source-dirs:
+      tests
+  ghc-options: -Wall
+  build-depends:
+      HUnit
+    , base >=4.9.1.0 && <5
+    , containers
+    , hm-demo
+    , hspec >=2.0.0
+    , strict-base >=0.4.0.0
+    , tasty >=1.4
+    , tasty-golden >=2.3.5
+    , tasty-hunit >=0.10.1
+  default-language: Haskell2010
