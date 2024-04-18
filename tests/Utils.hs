@@ -1,7 +1,7 @@
 {-# OPTIONS_GHC -Wno-incomplete-uni-patterns #-}
 
 module Utils
-  ( processTillParser,
+  (
   -- processTillTypeChecker,
   -- processTillVerify,
   -- processTillAstSimplifier,
@@ -41,8 +41,8 @@ import Parsetree
 -- import qualified TypeChecker.PrettyPrinter as TC
 -- import TypeChecker.TypeChecker (inferProgram)
 
-processTillParser :: String -> Maybe Parsetree.Program
-processTillParser = processTillParser'
+-- processTillParser :: String -> Maybe Parsetree.Program
+-- processTillParser = processTillParser'
 
 -- processTillTypeChecker :: Text -> String
 -- processTillTypeChecker = either TC.pretty TC.pretty . processTillTypeChecker'
@@ -75,8 +75,8 @@ processTillParser = processTillParser'
 
 -- -- Combinators
 
-processTillParser' :: String -> Maybe Parsetree.Program
-processTillParser' = Parser.parseProgram
+-- processTillParser' :: String -> Maybe Parsetree.Program
+-- processTillParser' = Parser.parseProgram
 
 -- processTillTypeChecker' :: Text -> Either TypeError Polytype
 -- processTillTypeChecker' = inferProgram . fromJust . processTillParser'

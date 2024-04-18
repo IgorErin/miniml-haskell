@@ -3,6 +3,7 @@
 
 module Lexer
   ( Parser,
+    keyword,
     sc,
     lexeme,
     symbol,

@@ -36,6 +36,7 @@ instance Applicative Infer where
               (st1, arg2) = farg st0
            in case (f2, arg2) of
                 (Right f, Right arg) -> (st1, Right (f arg))
+                _ -> undefined
       )
 
 instance Monad Infer where
@@ -107,18 +108,20 @@ unify a b = inferOfEither $ Subst.unify a b
 generalize :: Env -> Ty -> Scheme
 generalize env ty = Scheme free ty
   where
-    free = Data.Set.difference (Typedtree.free_vars ty) (freeVarsEnv env)
+    free = Data.Set.difference (Parsetree.free_vars ty) (freeVarsEnv env)
 
 infer :: Env -> Parsetree.Expr -> Infer (Subst.Subst, Ty)
 infer env (EConst (PConst_int _)) = return (Subst.empty, Prm "int")
 infer env (EConst (PConst_bool _)) = return (Subst.empty, Prm "bool")
 infer env (EVar x) = lookupEnv env x
-infer env (ELam (PVar x) e1) = do
+infer env (ELam (PVar x _) e1) = do
   tv <- freshVar
   let env2 = extendEnv x (Scheme Data.Set.empty tv) env
   (s, ty) <- infer env2 e1
   let trez = Arrow (Subst.apply s tv) ty
   return (s, trez)
+infer _ (ELam PUnit _) = undefined
+infer _ (ELam PAny _) = undefined
 infer env (EApp e1 e2) = do
   (s1, t1) <- infer env e1
   (s2, t2) <- infer (applyEnv s1 env) e2
@@ -135,14 +138,14 @@ infer env (EIf c th el) = do
   s5 <- unify t2 t3
   final_subst <- inferOfEither $ Subst.compose_all [s5, s4, s3, s2, s1]
   return (final_subst, Subst.apply s5 t2)
-infer env (ELet NonRecursive (PVar x) e1 e2) = do
+infer env (ELet NonRecursive (PVar x _) e1 e2) = do
   (s1, t1) <- infer env e1
-  let env2 = (applyEnv s1 env)
+  let env2 = applyEnv s1 env
   let t2 = generalize env2 t1
   (s2, t3) <- infer (extendEnv x t2 env2) e2
   final_subst <- inferOfEither $ Subst.compose s1 s2
   return (final_subst, t3)
-infer env (ELet Recursive (PVar x) e1 e2) = do
+infer env (ELet Recursive (PVar x _) e1 e2) = do
   tv <- freshVar
   let env2 = extendEnv x (Scheme Data.Set.empty tv) env
   (s1, t1) <- infer env2 e1
@@ -153,6 +156,10 @@ infer env (ELet Recursive (PVar x) e1 e2) = do
   (s3, t3) <- infer (extendEnv x t2 (applyEnv s env)) e2
   final_subst <- inferOfEither $ Subst.compose s s3
   return (final_subst, t3)
+infer _ (ELam (PAscr _ _) _) = undefined
+infer env (ELet _ (PAscr _ _) e1 e2) = undefined
+infer env (ELet _ PUnit e1 e2) = undefined
+infer env (ELet _ PAny e1 e2) = undefined
 
 runInfer :: Parsetree.Expr -> Either Error Ty
 runInfer expr =

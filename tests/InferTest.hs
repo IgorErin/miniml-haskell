@@ -32,7 +32,7 @@ infer1id =
       Right tyAns -> assertEqual "" ty tyAns
   where
     ty = Arrow (TyVar 0) (TyVar 0)
-    term = ELam (PVar "x") (EVar "x")
+    term = ELam (pvar "x") (evar "x")
 
 infer2part1 :: Test
 infer2part1 =
@@ -42,7 +42,7 @@ infer2part1 =
       Right tyAns -> assertEqual "" ty tyAns
   where
     ty = Arrow (Prm "int") (Prm "int")
-    term = EApp (EVar "+") (econst_int 1)
+    term = EApp (evar "+") (econst_int 1)
 
 infer3twice :: Test
 infer3twice =
@@ -52,7 +52,7 @@ infer3twice =
       Right tyAns -> assertEqual "" ty tyAns
   where
     ty = Arrow (Prm "int") (Prm "int")
-    term = ELam (PVar "x") (EApp (EApp (EVar "+") x) x)
+    term = ELam (pvar "x") (EApp (EApp (evar "+") x) x)
     x = EVar "x"
 
 infer4div :: Test
@@ -66,8 +66,8 @@ infer4div =
     term =
       ELet
         Recursive
-        (PVar "test1")
-        (ELam (PVar "x") (ELam (PVar "y") (EApp (EApp (EVar "/") x) y)))
+        (pvar "test1")
+        (ELam (pvar "x") (ELam (pvar "y") (EApp (EApp (EVar "/") x) y)))
         (EVar "test1")
     x = EVar "x"
     y = EVar "y"
@@ -83,9 +83,9 @@ infer4fix =
     term =
       ELet
         Recursive
-        (PVar "fix")
-        (ELam (PVar "f") (EApp (EVar "f") (EApp (EVar "fix") (EVar "f"))))
-        (EVar "fix")
+        (pvar "fix")
+        (ELam (pvar "f") (EApp (EVar "f") (EApp (EVar "fix") (EVar "f"))))
+        (evar "fix")
 
 infer5nonrec :: Test
 infer5nonrec =
@@ -98,9 +98,9 @@ infer5nonrec =
     term =
       ELet
         NonRecursive
-        (PVar "x")
+        (pvar "x")
         (Parsetree.econst_int 55)
-        (EVar "x")
+        (evar "x")
 
 failingTest1if :: Test
 failingTest1if =
@@ -113,7 +113,7 @@ failingTest1if =
       EIf
         (EConst (PConst_bool True))
         (EConst (PConst_bool True))
-        (EConst (PConst_int 0))
+        (econst_int 0)
 
 inferTests :: Test
 inferTests =

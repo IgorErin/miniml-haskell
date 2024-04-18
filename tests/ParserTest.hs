@@ -1,21 +1,35 @@
-{-# LANGUAGE TupleSections #-}
+{-# LANGUAGE QuasiQuotes #-}
 
 module ParserTest (tests) where
 
--- import Data.List.NonEmpty (NonEmpty ((:|)))
--- import qualified Data.List.NonEmpty as NonEmpty
--- import Data.Text (Text, unpack)
-
 import Debug.Trace
-import Parser (parseExpr)
+import Parser (parseExpr, parseProgram)
 import Parsetree
 import Test.HUnit
-import Utils (processTillParser)
+import Text.RawString.QQ
 
-exprBinOp f a b = EApp (EApp f a) b
+-- import Utils (processTillParser)
 
-(==?=>) :: String -> Maybe Program -> Assertion
-(==?=>) text maybeAst = assertEqual ("[" <> text <> "]") maybeAst (processTillParser text)
+exprBinOp f a = EApp (EApp f a)
+
+(==?=>) :: String -> Either String Program -> Assertion
+(==?=>) text ast =
+  case (ast, Parser.parseProgram text) of
+    (Right exp, Right real) -> assertEqual ("[" <> text <> "]") exp real
+    (Left a, Left b) -> assertEqual ("[" <> text <> "]") a b
+    (Right left, Left err) -> trace err $ assertFailure "FUCK"
+    (Right left, Left err) -> trace err $ assertFailure "FUCK"
+
+programParsable :: String -> Assertion
+programParsable text =
+  case Parser.parseProgram text of
+    Right _ -> assertEqual "" True True
+    Left err -> trace err $ assertFailure ("Can't parse: " ++ text)
+
+-- assertEqual
+-- ("[" <> text <> "]")
+-- maybeAst
+-- (processTillParser text)
 
 testExpr :: String -> Either String Expr -> Assertion
 testExpr text ast =
@@ -28,34 +42,58 @@ testExpr text ast =
 -- Tests
 
 testLetDecls :: Assertion
-testLetDecls = do
-  let varDecl' x v = SItem NonRecursive (PVar x) (econst_int v)
+testLetDecls =
+  do
+    let varDecl' x v = SItem NonRecursive (pvar x) (econst_int v)
 
-  let varDecl x = varDecl' x 4
-  let funDecl x args = SItem NonRecursive (PVar x) $ elams args (econst_int 4)
-  let recFunDecl x args = SItem Recursive (PVar x) $ elams args (econst_int 4)
+    let varDecl x = varDecl' x 4
+    let funDecl x args = SItem NonRecursive (pvar x) $ elams args (econst_int 4)
+    let recFunDecl x args = SItem Recursive (pvar x) $ elams args (econst_int 4)
 
-  let aDecl = varDecl "a"
-  let bDecl = varDecl' "b" 8
-  let (@@) = EApp
+    let aDecl = varDecl "a"
+    let bDecl = varDecl' "b" 8
+    let (@@) = EApp
 
-  testExpr "a" (Right $ EVar "a")
-  testExpr "a+b" (Right $ exprBinOp (EVar "+") (EVar "a") (EVar "b"))
-  testExpr "let x = 1 in x" (Right $ ELet NonRecursive (PVar "x") (econst_int 1) (EVar "x"))
-  testExpr
-    "let rec fix f = f (fix f) x in fix"
-    ( Right $
-        ELet
-          Recursive
-          (PVar "fix")
-          ( ELam
-              (PVar "f")
-              ((EVar "f" @@ (EVar "fix" @@ EVar "f")) @@ EVar "x")
-          )
-          (EVar "fix")
-    )
+    testExpr "a" (Right $ EVar "a")
+    testExpr "a+b" (Right $ exprBinOp (EVar "+") (EVar "a") (EVar "b"))
+    testExpr "let x = 1 in x" (Right $ ELet NonRecursive (pvar "x") (econst_int 1) (EVar "x"))
+    testExpr
+      "let rec fix f = f (fix f) x in fix"
+      ( Right $
+          ELet
+            Recursive
+            (pvar "fix")
+            ( ELam
+                (pvar "f")
+                ((EVar "f" @@ (EVar "fix" @@ EVar "f")) @@ EVar "x")
+            )
+            (EVar "fix")
+      )
 
-  "let a = 4 " ==?=> Just (Program [aDecl])
+    "let a = 4 " ==?=> Right (Program [aDecl])
+    "let a = let () = print_int 5 in 42"
+      ==?=> Right
+        ( Program
+            [ SItem
+                NonRecursive
+                (pvar "a")
+                ( ELet
+                    NonRecursive
+                    PUnit
+                    ( EApp
+                        (EVar "print_int")
+                        (EConst (PConst_int 5))
+                    )
+                    (EConst (PConst_int 42))
+                )
+            ]
+        )
+    programParsable
+      "let print_and_close (  file) =\n\
+      \let () = print_endline (read file) in\n\
+      \close file"
+    "let f (unique q) = q"
+      ==?=> Right (Program [SItem NonRecursive (PVar "f" PMNone) (ELam (PVar "q" PMUnique) (EVar "q"))])
 
 -- "let a" ==?=> Nothing
 -- "let = 4" ==?=> Nothing

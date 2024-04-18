@@ -19,6 +19,7 @@ import Data.Maybe (fromMaybe)
 import qualified Data.Set
 import Data.Strict.List
 import Debug.Trace
+import Parsetree
 import System.IO.Unsafe
 import Typedtree
 import Prelude hiding (lookup)
@@ -84,9 +85,9 @@ unify !left !right =
     helper (Prm l) (Prm r) | l == r = return empty
     helper l@(Prm _) r@(Prm _) = Left (UnificationFailed l r)
     helper (TyVar l) (TyVar r) | l == r = return empty
-    helper (TyVar l) r | Typedtree.occurs_in l r = Left OccursCheck
+    helper (TyVar l) r | Parsetree.occurs_in l r = Left OccursCheck
     helper (TyVar l) r = return $ singleton l r
-    helper r (TyVar l) | Typedtree.occurs_in l r = Left OccursCheck
+    helper r (TyVar l) | Parsetree.occurs_in l r = Left OccursCheck
     helper r (TyVar l) = return $ singleton l r
     helper (Arrow l1 r1) (Arrow l2 r2) = do
       subs1 <- helper l1 l2
@@ -96,7 +97,7 @@ unify !left !right =
     helper l@(Prm _) r@(Arrow _ _) = Left $ UnificationFailed l r
 
 mapping !k !v =
-  if Typedtree.occurs_in k v
+  if Parsetree.occurs_in k v
     then Left OccursCheck
     else Right (k, v)
 

@@ -7,6 +7,7 @@ import qualified ParserTest (tests)
 import qualified System.Exit as Exit
 import Test.HUnit
 import Typedtree
+import Parsetree
 
 test1 :: Test
 test1 = TestCase (assertEqual "should return 3" 3 (basicSum 1 2))

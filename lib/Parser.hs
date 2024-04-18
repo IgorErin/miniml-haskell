@@ -1,8 +1,12 @@
 -- https://github.com/AzimMuradov/miniml-compiler-haskell-spbu/blob/master/lib/Parser/Parser.hs
 {-# LANGUAGE OverloadedStrings #-}
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+
+{-# HLINT ignore "Use first" #-}
 
 module Parser (parseProgram, parseExpr) where
 
+import Control.Arrow (ArrowChoice (right))
 import Control.Monad.Combinators.Expr (Operator (..), makeExprParser)
 import Data.Bifunctor (bimap)
 import Data.List.NonEmpty (some1)
@@ -10,21 +14,19 @@ import Data.String (String)
 import Lexer
 import ParserUtils
 import Parsetree
-import Text.Megaparsec (MonadParsec (..), many, option, parse, parseMaybe, (<?>))
+import Text.Megaparsec (MonadParsec (..), choice, many, option, parse, parseMaybe, (<?>))
 import Text.Megaparsec.Error (errorBundlePretty)
 import Typedtree
 
-type Type = Typedtree.Ty
+type Type = Parsetree.Ty
 
 type Identifier = String
 
--- import Trees.Common
-
--- * Program Parser
-
 -- | Parser entry point
-parseProgram :: String -> Maybe Program
-parseProgram = parseMaybe $ sc *> programP <* eof
+parseProgram :: String -> Either String Program
+parseProgram str =
+  bimap errorBundlePretty id $
+    (parse $ sc *> programP <* eof) "file.ml" str
 
 parseExpr :: String -> Either String Expr
 parseExpr str = bimap errorBundlePretty id foo
@@ -41,6 +43,19 @@ programP = Program <$> many declP
 
 -- ** User Declaration Parsers
 
+patternP :: Parser Pattern
+patternP =
+  choice
+    [ leftPar
+        *> choice
+          [ (`PVar` PMUnique) <$> (keyword "unique" *> identifierP <* rightPar),
+            patternP <* rightPar,
+            PUnit <$ rightPar
+          ],
+      pvar <$> identifierP,
+      PAny <$ (sc *> Lexer.keyword "_")
+    ]
+
 declP :: Parser StructureItem
 declP = recDecl
   where
@@ -49,8 +64,8 @@ declP = recDecl
       (\flg pat args body -> SItem flg pat (elams args body))
         <$ kwLet
         <*> option NonRecursive (Recursive <$ (sc *> kwRec))
-        <*> (PVar <$> identifierP)
-        <*> many (sc *> identifierP)
+        <*> patternP
+        <*> many (sc *> patternP)
         <*> (sc *> (eq <?> "equality") *> exprP)
 
 -- nonRecDecl = SItem Recursive <$ kwLet <* kwRec <*> (PVar <$> identifierP) <*> exprP
@@ -79,11 +94,11 @@ opsTable :: [[Operator Parser Expr]]
 opsTable =
   [ [appOp],
     -- [unOp "-" UnMinusOp],
-    [ binary "*" (\a b -> EApp (EApp (EVar "*") a) b),
-      binary "/" (\a b -> EApp (EApp (EVar "/") a) b)
+    [ binary "*" (EApp . EApp (EVar "*")),
+      binary "/" (EApp . EApp (EVar "/"))
     ],
-    [ binary "+" (\a b -> EApp (EApp (EVar "+") a) b),
-      binary "-" (\a b -> EApp (EApp (EVar "-") a) b)
+    [ binary "+" (EApp . EApp (EVar "+")),
+      binary "-" (EApp . EApp (EVar "-"))
     ]
   ]
 
@@ -144,7 +159,7 @@ funP _ = exprP
 parameterP :: Parser Pattern
 parameterP =
   choice'
-    [ manyParens (PVar <$> identifierP)
+    [ manyParens (pvar <$> identifierP)
     ]
 
 -- optionalTypeAnnotationP :: Parser (Maybe Type)
