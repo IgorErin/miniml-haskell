@@ -17,12 +17,12 @@ data Ty
 
 instance Show Ty where
   show !ty = let rez = helper 3 ty in rez
-    where
-      helper 0 _ = "FUCK"
-      helper n _ | n < 0 = undefined
-      helper _ (Prm s) = s
-      helper _ (TyVar v) = "'" ++ show v
-      helper n (Arrow left right) = "(" ++ helper (n - 1) left ++ " -> " ++ helper (n - 1) right ++ ")"
+   where
+    helper 0 _ = "FUCK"
+    helper n _ | n < 0 = undefined
+    helper _ (Prm s) = s
+    helper _ (TyVar v) = "'" ++ show v
+    helper n (Arrow left right) = "(" ++ helper (n - 1) left ++ " -> " ++ helper (n - 1) right ++ ")"
 
 data Const
   = PConst_int Int
@@ -34,7 +34,11 @@ data RecFlag
   | NonRecursive
   deriving (Show, Eq)
 
-data PatternModifier = PMUnique | PMNone deriving (Show, Eq)
+data PatternModifier
+  = PMUnique
+  | PMLocalExclusive
+  | PMNone
+  deriving (Show, Eq)
 
 data Pattern
   = PVar String PatternModifier
@@ -48,6 +52,7 @@ pvar s = PVar s PMNone
 data Expr
   = EConst Const
   | EVar String
+  | EBorrow Expr
   | EIf Expr Expr Expr
   | ELam Pattern Expr
   | EApp Expr Expr
@@ -69,14 +74,14 @@ newtype Program = Program [StructureItem] deriving (Show, Eq)
 
 occurs_in :: Int -> Ty -> Bool
 occurs_in = helper
-  where
-    helper v (TyVar !x) = x == v
-    helper v (Arrow !l !r) = helper v l || helper v r
-    helper v (Prm _) = False
+ where
+  helper v (TyVar !x) = x == v
+  helper v (Arrow !l !r) = helper v l || helper v r
+  helper v (Prm _) = False
 
 free_vars :: Ty -> Set Int
 free_vars = helper empty
-  where
-    helper acc (TyVar v) = Data.Set.insert v acc
-    helper acc (Prm _) = acc
-    helper acc (Arrow l r) = helper (helper acc r) l
+ where
+  helper acc (TyVar v) = Data.Set.insert v acc
+  helper acc (Prm _) = acc
+  helper acc (Arrow l r) = helper (helper acc r) l

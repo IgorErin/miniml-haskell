@@ -1,8 +1,8 @@
+{-# HLINT ignore "Use first" #-}
+{-# LANGUAGE LambdaCase #-}
 -- https://github.com/AzimMuradov/miniml-compiler-haskell-spbu/blob/master/lib/Parser/Parser.hs
 {-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
-
-{-# HLINT ignore "Use first" #-}
 
 module Parser (parseProgram, parseExpr) where
 
@@ -30,8 +30,8 @@ parseProgram str =
 
 parseExpr :: String -> Either String Expr
 parseExpr str = bimap errorBundlePretty id foo
-  where
-    foo = (parse $ sc *> exprP <* eof) "file.ml" str
+ where
+  foo = (parse $ sc *> exprP <* eof) "file.ml" str
 
 -- * Internal
 
@@ -48,25 +48,26 @@ patternP =
   choice
     [ leftPar
         *> choice
-          [ (`PVar` PMUnique) <$> (keyword "unique" *> identifierP <* rightPar),
-            patternP <* rightPar,
-            PUnit <$ rightPar
-          ],
-      pvar <$> identifierP,
-      PAny <$ (sc *> Lexer.keyword "_")
+          [ (`PVar` PMUnique) <$> (keyword "unique" *> identifierP <* rightPar)
+          , (`PVar` PMLocalExclusive) <$> (keyword "local" *> keyword "exclusive" *> identifierP <* rightPar)
+          , patternP <* rightPar
+          , PUnit <$ rightPar
+          ]
+    , pvar <$> identifierP
+    , PAny <$ (sc *> Lexer.keyword "_")
     ]
 
 declP :: Parser StructureItem
 declP = recDecl
-  where
-    -- varDeclP = DeclVar <$ kwLet <*> varSigP <* eq <*> exprP
-    recDecl =
-      (\flg pat args body -> SItem flg pat (elams args body))
-        <$ kwLet
-        <*> option NonRecursive (Recursive <$ (sc *> kwRec))
-        <*> patternP
-        <*> many (sc *> patternP)
-        <*> (sc *> (eq <?> "equality") *> exprP)
+ where
+  -- varDeclP = DeclVar <$ kwLet <*> varSigP <* eq <*> exprP
+  recDecl =
+    (\flg pat args body -> SItem flg pat (elams args body))
+      <$ kwLet
+      <*> option NonRecursive (Recursive <$ (sc *> kwRec))
+      <*> patternP
+      <*> many (sc *> patternP)
+      <*> (sc *> (eq <?> "equality") *> exprP)
 
 -- nonRecDecl = SItem Recursive <$ kwLet <* kwRec <*> (PVar <$> identifierP) <*> exprP
 
@@ -80,30 +81,40 @@ exprP = makeExprParser exprTerm opsTable
 exprTerm :: Parser Expr
 exprTerm =
   choice'
-    [ parens exprP,
-      (\(SItem flg pat body) wher -> ELet flg pat body wher) <$> declP <* kwIn <*> exprP,
-      EConst <$> primValExprP,
-      kwFun *> funP arrow,
-      EIf <$ kwIf <*> exprP <* kwThen <*> exprP <* kwElse <*> exprP,
-      EVar <$> identifierP
+    [ parens exprP
+    , -- , EBorrowVar <$> (keyword "&" *> identifierP)
+      (\(SItem flg pat body) wher -> ELet flg pat body wher) <$> declP <* kwIn <*> exprP
+    , EConst <$> primValExprP
+    , kwFun *> funP arrow
+    , EIf <$ kwIf <*> exprP <* kwThen <*> exprP <* kwElse <*> exprP
+    , EVar <$> identifierP
     ]
 
 -- ** Operation Parsers
 
 opsTable :: [[Operator Parser Expr]]
 opsTable =
-  [ [appOp],
-    -- [unOp "-" UnMinusOp],
-    [ binary "*" (EApp . EApp (EVar "*")),
-      binary "/" (EApp . EApp (EVar "/"))
-    ],
-    [ binary "+" (EApp . EApp (EVar "+")),
-      binary "-" (EApp . EApp (EVar "-"))
+  [ [Prefix (EBorrow <$ symbol "&")]
+  , [appOp]
+  , -- , [Prefix (EBorrowVar <$> (symbol "&" *> p))]
+
+    [ unOp "-" (EApp (evar "-"))
+    ]
+  ,
+    [ binary "*" (EApp . EApp (EVar "*"))
+    , binary "/" (EApp . EApp (EVar "/"))
+    ]
+  ,
+    [ binary "+" (EApp . EApp (EVar "+"))
+    , binary "-" (EApp . EApp (EVar "-"))
     ]
   ]
 
 binary :: String -> (Expr -> Expr -> Expr) -> Operator Parser Expr
 binary name f = InfixL (f <$ symbol name)
+
+unOp :: String -> (Expr -> Expr) -> Operator Parser Expr
+unOp name f = Prefix (f <$ symbol name)
 
 appOp :: Operator Parser Expr
 appOp = InfixL $ return Parsetree.EApp
@@ -146,8 +157,8 @@ primValExprP :: Parser Const
 primValExprP =
   choice'
     [ -- PrimValUnit <$ unitLitP,
-      PConst_bool <$> boolLitP,
-      PConst_int <$> intLitP
+      PConst_bool <$> boolLitP
+    , PConst_int <$> intLitP
     ]
 
 -- ** Function Parser

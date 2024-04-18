@@ -6,19 +6,16 @@ import Debug.Trace
 import Parser (parseExpr, parseProgram)
 import Parsetree
 import Test.HUnit
-import Text.RawString.QQ
-
--- import Utils (processTillParser)
 
 exprBinOp f a = EApp (EApp f a)
 
 (==?=>) :: String -> Either String Program -> Assertion
 (==?=>) text ast =
   case (ast, Parser.parseProgram text) of
-    (Right exp, Right real) -> assertEqual ("[" <> text <> "]") exp real
+    (Right expected, Right real) -> assertEqual ("[" <> text <> "]") expected real
     (Left a, Left b) -> assertEqual ("[" <> text <> "]") a b
-    (Right left, Left err) -> trace err $ assertFailure "FUCK"
-    (Right left, Left err) -> trace err $ assertFailure "FUCK"
+    (Right _, Left err) -> trace err $ assertFailure "FUCK"
+    (Left err, Right _) -> trace err $ assertFailure "FUCK"
 
 programParsable :: String -> Assertion
 programParsable text =
@@ -26,18 +23,11 @@ programParsable text =
     Right _ -> assertEqual "" True True
     Left err -> trace err $ assertFailure ("Can't parse: " ++ text)
 
--- assertEqual
--- ("[" <> text <> "]")
--- maybeAst
--- (processTillParser text)
-
-testExpr :: String -> Either String Expr -> Assertion
+testExpr :: String -> Expr -> Assertion
 testExpr text ast =
-  case (ast, Parser.parseExpr text) of
-    (Right exp, Right real) -> assertEqual ("[" <> text <> "]") exp real
-    (Left a, Left b) -> assertEqual ("[" <> text <> "]") a b
-    (Right left, Left err) -> trace err $ assertFailure "FUCK"
-    (Right left, Left err) -> trace err $ assertFailure "FUCK"
+  case Parser.parseExpr text of
+    Right real -> assertEqual ("[" <> text <> "]") ast real
+    Left err -> trace err $ assertFailure "FUCK"
 
 -- Tests
 
@@ -45,32 +35,29 @@ testLetDecls :: Assertion
 testLetDecls =
   do
     let varDecl' x v = SItem NonRecursive (pvar x) (econst_int v)
-
     let varDecl x = varDecl' x 4
-    let funDecl x args = SItem NonRecursive (pvar x) $ elams args (econst_int 4)
-    let recFunDecl x args = SItem Recursive (pvar x) $ elams args (econst_int 4)
-
     let aDecl = varDecl "a"
-    let bDecl = varDecl' "b" 8
     let (@@) = EApp
 
-    testExpr "a" (Right $ EVar "a")
-    testExpr "a+b" (Right $ exprBinOp (EVar "+") (EVar "a") (EVar "b"))
-    testExpr "let x = 1 in x" (Right $ ELet NonRecursive (pvar "x") (econst_int 1) (EVar "x"))
+    testExpr "a" (evar "a")
+    testExpr "-1 + 2 " (EApp (EApp (evar "+") (evar "-" `EApp` econst_int 1)) (econst_int 2))
+    testExpr "a+b" (exprBinOp (evar "+") (evar "a") (evar "b"))
+    testExpr "let x = 1 in x" (ELet NonRecursive (pvar "x") (econst_int 1) (EVar "x"))
     testExpr
       "let rec fix f = f (fix f) x in fix"
-      ( Right $
-          ELet
-            Recursive
-            (pvar "fix")
-            ( ELam
-                (pvar "f")
-                ((EVar "f" @@ (EVar "fix" @@ EVar "f")) @@ EVar "x")
-            )
-            (EVar "fix")
+      ( ELet
+          Recursive
+          (pvar "fix")
+          ( ELam
+              (pvar "f")
+              ((EVar "f" @@ (EVar "fix" @@ EVar "f")) @@ EVar "x")
+          )
+          (EVar "fix")
       )
 
     "let a = 4 " ==?=> Right (Program [aDecl])
+    testExpr "&a" (EBorrow (EVar "a"))
+    testExpr "f &a" (EVar "f" @@ EBorrow (EVar "a"))
     "let a = let () = print_int 5 in 42"
       ==?=> Right
         ( Program
@@ -94,6 +81,9 @@ testLetDecls =
       \close file"
     "let f (unique q) = q"
       ==?=> Right (Program [SItem NonRecursive (PVar "f" PMNone) (ELam (PVar "q" PMUnique) (EVar "q"))])
+    programParsable
+      "let write_twice (unique x) =\n\
+      \write2 &x &x 54"
 
 -- "let a" ==?=> Nothing
 -- "let = 4" ==?=> Nothing

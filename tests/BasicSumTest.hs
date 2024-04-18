@@ -6,7 +6,6 @@ import Inferencer
 import qualified ParserTest (tests)
 import qualified System.Exit as Exit
 import Test.HUnit
-import Typedtree
 import Parsetree
 
 test1 :: Test

@@ -55,7 +55,6 @@ test-suite test1
   other-modules:
       InferTest
       ParserTest
-      Utils
       Paths_hm_demo
   hs-source-dirs:
       tests

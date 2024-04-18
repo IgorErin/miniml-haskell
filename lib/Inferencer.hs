@@ -23,8 +23,8 @@ newtype Infer a = Infer (Int -> (Int, Either Error a))
 
 instance Functor Infer where
   fmap f (Infer i) = Infer (\a -> map2 (fmap f) (i a))
-    where
-      map2 foo (a, b) = (a, foo b)
+   where
+    map2 foo (a, b) = (a, foo b)
 
 instance Applicative Infer where
   pure a = Infer $ \x -> (x, Right a)
@@ -58,12 +58,12 @@ freshVar = fmap TyVar fresh
 instantiate :: Scheme -> Infer Ty
 instantiate (Scheme vars t) =
   Data.Set.foldr f (return t) vars
-  where
-    f name ty = do
-      f1 <- freshVar
-      typ <- ty
-      let s = Subst.singleton name f1
-      return (Subst.apply s typ)
+ where
+  f name ty = do
+    f1 <- freshVar
+    typ <- ty
+    let s = Subst.singleton name f1
+    return (Subst.apply s typ)
 
 newtype Env = Env (Map String Scheme) deriving (Show)
 
@@ -75,15 +75,15 @@ defaultEnv :: Env
 defaultEnv =
   Env $
     Data.Map.fromList
-      [ ("*", arith),
-        ("/", arith),
-        ("-", arith),
-        ("+", arith),
-        ("=", eqS)
+      [ ("*", arith)
+      , ("/", arith)
+      , ("-", arith)
+      , ("+", arith)
+      , ("=", eqS)
       ]
-  where
-    arith = Scheme.ofTy $ Arrow (Prm "int") $ Arrow (Prm "int") (Prm "int")
-    eqS = Scheme.ofTy $ Arrow (TyVar 0) $ Arrow (TyVar 0) $ Prm "bool"
+ where
+  arith = Scheme.ofTy $ Arrow (Prm "int") $ Arrow (Prm "int") (Prm "int")
+  eqS = Scheme.ofTy $ Arrow (TyVar 0) $ Arrow (TyVar 0) $ Prm "bool"
 
 lookupEnv :: Env -> String -> Infer (Subst.Subst, Ty)
 lookupEnv (Env env) name =
@@ -107,13 +107,14 @@ unify a b = inferOfEither $ Subst.unify a b
 
 generalize :: Env -> Ty -> Scheme
 generalize env ty = Scheme free ty
-  where
-    free = Data.Set.difference (Parsetree.free_vars ty) (freeVarsEnv env)
+ where
+  free = Data.Set.difference (Parsetree.free_vars ty) (freeVarsEnv env)
 
 infer :: Env -> Parsetree.Expr -> Infer (Subst.Subst, Ty)
 infer env (EConst (PConst_int _)) = return (Subst.empty, Prm "int")
 infer env (EConst (PConst_bool _)) = return (Subst.empty, Prm "bool")
 infer env (EVar x) = lookupEnv env x
+infer env (EBorrow x) = undefined
 infer env (ELam (PVar x _) e1) = do
   tv <- freshVar
   let env2 = extendEnv x (Scheme Data.Set.empty tv) env
