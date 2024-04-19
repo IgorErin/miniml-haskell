@@ -2,19 +2,24 @@
 {-# LANGUAGE LambdaCase #-}
 -- https://github.com/AzimMuradov/miniml-compiler-haskell-spbu/blob/master/lib/Parser/Parser.hs
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 
-module Parser (parseProgram, parseExpr) where
+module Parser (Parser, parseProgram, parseExpr, parsePattern, parseTy, parseIdent) where
 
 import Control.Arrow (ArrowChoice (right))
 import Control.Monad.Combinators.Expr (Operator (..), makeExprParser)
 import Data.Bifunctor (bimap)
 import Data.List.NonEmpty (some1)
 import Data.String (String)
+import GHC.Base (TyCon (TyCon))
+import GHC.Conc (TVar (TVar))
 import Lexer
+import Lexer (kwBool, lexeme)
 import ParserUtils
 import Parsetree
-import Text.Megaparsec (MonadParsec (..), choice, many, option, parse, parseMaybe, (<?>))
+import Text.Megaparsec (MonadParsec (..), choice, many, option, optional, parse, parseMaybe, (<?>))
+import Text.Megaparsec.Char.Lexer (decimal)
 import Text.Megaparsec.Error (errorBundlePretty)
 import Typedtree
 
@@ -22,16 +27,31 @@ type Type = Parsetree.Ty
 
 type Identifier = String
 
+runWrap p str =
+  bimap errorBundlePretty id $
+    (parse $ sc *> p <* eof) "file.ml" str
+
 -- | Parser entry point
 parseProgram :: String -> Either String Program
-parseProgram str =
+parseProgram = runWrap programP
+
+parseIdent :: String -> Either String Identifier
+parseIdent = runWrap Lexer.identifierP
+
+parsePattern :: String -> Either String Pattern
+parsePattern str =
   bimap errorBundlePretty id $
-    (parse $ sc *> programP <* eof) "file.ml" str
+    (parse $ sc *> patternP <* eof) "file.ml" str
 
 parseExpr :: String -> Either String Expr
 parseExpr str = bimap errorBundlePretty id foo
  where
   foo = (parse $ sc *> exprP <* eof) "file.ml" str
+
+parseTy :: String -> Either String Ty
+parseTy str = bimap errorBundlePretty id foo
+ where
+  foo = (parse $ sc *> typeP <* eof) "file.ml" str
 
 -- * Internal
 
@@ -43,14 +63,48 @@ programP = Program <$> many declP
 
 -- ** User Declaration Parsers
 
+typeP :: Parser Ty
+typeP = makeExprParser annotatedTy typOps
+ where
+  typTerm :: Parser Ty
+  typTerm =
+    choice
+      [ TyVar <$> (lexeme "'" *> intLitP)
+      , Prm <$> identifierP
+      , Prm "unit" <$ kwUnit
+      , Prm "bool" <$ kwBool
+      , parens typeP
+      ]
+
+  annotatedTy :: Parser Ty
+  annotatedTy =
+    typTerm
+      <* optional'
+        ( lexeme "@"
+            <* choice
+              [ keyword "unique"
+              , try $ keyword "local" <* sc <* keyword "exclusive"
+              , keyword "local"
+              ]
+        )
+  typOps :: [[Operator Parser Ty]]
+  typOps =
+    [ [InfixL $ return Parsetree.TApp]
+    ,
+      [ InfixL (Parsetree.Arrow <$ symbol "->")
+      ]
+    ]
+
 patternP :: Parser Pattern
 patternP =
   choice
     [ leftPar
         *> choice
-          [ (`PVar` PMUnique) <$> (keyword "unique" *> identifierP <* rightPar)
-          , (`PVar` PMLocalExclusive) <$> (keyword "local" *> keyword "exclusive" *> identifierP <* rightPar)
-          , patternP <* rightPar
+          [ try $ (`PVar` PMUnique) <$> (keyword "unique" *> identifierP <* rightPar)
+          , try $ (`PVar` PMLocalExclusive) <$> (keyword "local" *> keyword "exclusive" *> identifierP <* rightPar)
+          , try $ PAscr <$> identifierP <* sc <* keyword ":" <*> typeP <* rightPar
+          , try $ (`PVar` PMNone) <$> (identifierP <* rightPar)
+          , try $ patternP <* rightPar
           , PUnit <$ rightPar
           ]
     , pvar <$> identifierP

@@ -13,6 +13,7 @@ data Ty
   = Prm String
   | TyVar Int
   | Arrow Ty Ty
+  | TApp Ty Ty
   deriving (Eq)
 
 instance Show Ty where
@@ -37,6 +38,7 @@ data RecFlag
 data PatternModifier
   = PMUnique
   | PMLocalExclusive
+  | PMOnce
   | PMNone
   deriving (Show, Eq)
 
