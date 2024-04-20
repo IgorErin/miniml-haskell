@@ -32,14 +32,15 @@ library:
 # Test suite
 tests:
   test1:
-    main: BasicSumTest.hs
+    main: Main.hs
     source-dirs: tests
     ghc-options: -Wall
     dependencies:
     - hm-demo
-    - HUnit
-    - hspec >=2.0.0
-    - strict-base >=0.4.0.0
-    # - tasty          >=1.4
-    # - tasty-golden   >=2.3.5
-    # - tasty-hunit    >=0.10
+
+    - tasty
+    - tasty-hunit
+    - tasty-golden
+    - filepath
+    - text
+    - bytestring

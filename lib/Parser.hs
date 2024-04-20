@@ -5,7 +5,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 
-module Parser (Parser, parseProgram, parseExpr, parsePattern, parseTy, parseIdent) where
+module Parser (Result, Parser, parseProgram, parseExpr, parsePattern, parseTy, parseIdent) where
 
 import Control.Arrow (ArrowChoice (right))
 import Control.Monad.Combinators.Expr (Operator (..), makeExprParser)
@@ -26,6 +26,8 @@ import Typedtree
 type Type = Parsetree.Ty
 
 type Identifier = String
+
+type Result = Either String Program
 
 runWrap p str =
   bimap errorBundlePretty id $

@@ -1,0 +1,1 @@
+Right (Program [SItem NonRecursive (PVar "print_and_close" PMNone) (ELam (PVar "file" PMNone) (ELet NonRecursive PUnit (EApp (EVar "print_endline") (EApp (EVar "read") (EVar "file"))) (EApp (EVar "close") (EVar "file"))))])

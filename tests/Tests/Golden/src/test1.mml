@@ -1,0 +1,3 @@
+let print_and_close (file) =
+let () = print_endline (read file) in
+close file

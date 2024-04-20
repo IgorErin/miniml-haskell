@@ -1,0 +1,2 @@
+let write_twice (unique x) =
+write2 &x &x 54

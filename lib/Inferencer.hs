@@ -34,7 +34,7 @@ instance Applicative Infer where
       ( \st ->
           let (st0, f2) = fa st
               (st1, arg2) = farg st0
-           in case (f2, arg2) of
+          in case (f2, arg2) of
                 (Right f, Right arg) -> (st1, Right (f arg))
                 _ -> undefined
       )

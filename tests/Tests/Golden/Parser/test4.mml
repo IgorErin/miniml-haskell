@@ -1,0 +1,1 @@
+Right (Program [SItem NonRecursive (PVar "f" PMNone) (ELam (PAscr "n" int) (EVar "n"))])
