@@ -61,6 +61,7 @@ instance Show Ty where
 data Const
   = ConstInt Int
   | ConstBool Bool
+  | ConstUnit
   deriving (Show, Eq)
 
 data RecFlag
@@ -143,11 +144,20 @@ intConst = EConst . ConstInt
 boolConst :: Bool -> Expr
 boolConst = EConst . ConstBool
 
-let_ :: Bool -> Pattern -> Expr -> Expr -> Expr
-let_ isRec = ELet $
-  if isRec
-  then Recursive
-  else NonRecursive
+unitConst :: Expr
+unitConst = EConst ConstUnit
+
+recOfBool :: Bool -> RecFlag
+recOfBool f
+    | f = Recursive
+    | otherwise = NonRecursive
+
+let_ :: Bool -> Pattern -> [Pattern] -> Expr -> Expr -> Expr
+let_ isRec pat@(PVar PMNone _) args@(_ : _) expr body =
+  let expr' = lams args expr
+  in ELet (recOfBool isRec) pat expr' body
+let_ isRec pat [] expr body = ELet (recOfBool isRec) pat expr body
+let_ _ _ _ _ _ = error "let parsing failed"
 
 var :: Ident -> Expr
 var = EVar

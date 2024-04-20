@@ -1,2 +1,1 @@
-let write_twice (unique x) =
-write2 &x &x 54
+let write_twice (mut x) = write2 &x &x 54 in ()

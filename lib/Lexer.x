@@ -8,7 +8,7 @@ module Lexer(alexScanTokens, Token (..)) where
 $digit = 0-9            -- digits
 $alpha = [a-zA-Z]       -- alphabetic characters
 
-@ident = $alpha [$alpha $digit]*
+@ident = ($alpha | \_) ($alpha | $digit | \_ | \' | \?)*
 @number = digit+
 
 tokens :-

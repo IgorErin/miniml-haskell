@@ -1,1 +1,1 @@
-[TLet,TIdent "print",TAny,TIdent "and",TAny,TIdent "close",TLParent,TIdent "file",TRParent,TEq,TLet,TUnit,TEq,TIdent "print",TAny,TIdent "endline",TLParent,TIdent "read",TIdent "file",TRParent,TIn,TIdent "close",TIdent "file"]
+[TLet,TIdent "print_and_close",TLParent,TIdent "file",TRParent,TEq,TIdent "print_endline",TLParent,TIdent "read",TIdent "file",TRParent,TIn,TIdent "close",TIdent "file"]

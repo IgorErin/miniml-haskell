@@ -1,1 +1,1 @@
-[TLet,TIdent "write",TAny,TIdent "twice",TLParent,TIdent "unique",TIdent "x",TRParent,TEq,TIdent "write2",TBorrow,TIdent "x",TBorrow,TIdent "x",TInt 54]
+[TLet,TIdent "write_twice",TLParent,TMut,TIdent "x",TRParent,TEq,TIdent "write2",TBorrow,TIdent "x",TBorrow,TIdent "x",TInt 54,TIn,TUnit]

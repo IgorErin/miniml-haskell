@@ -1,1 +1,1 @@
-Right (Program [SItem NonRecursive (PVar "write_twice" PMNone) (ELam (PVar "x" PMUnique) (EApp (EApp (EApp (EVar "write2") (EBorrow (EVar "x"))) (EBorrow (EVar "x"))) (EConst (PConst_int 54))))])
+ELet NonRecursive (PVar PMNone "write_twice") (ELam (PVar PMUnique "x") (EApp (EVar "write2") (EBorrow (EApp (EVar "x") (EBorrow (EApp (EVar "x") (EConst (ConstInt 54)))))))) (EConst ConstUnit)

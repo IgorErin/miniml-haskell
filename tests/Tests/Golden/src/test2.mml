@@ -1,1 +1,1 @@
-let f (unique q) = q
+let f (mut q) = q in ()

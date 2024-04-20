@@ -62,14 +62,14 @@ Expr
     | "if" Expr "then" Expr "else" Expr             { P.if_ $2 $4 $6}
     | "fun" Pattern "->" Expr                       { P.lam $2 $4 }
     | Expr Expr                                     { P.app $1 $2 }
-    | "let" is("rec") Pattern "=" Expr "in" Expr    { P.let_ $2 $3 $5 $7 }
-    -- | "let" is("rec") ident list(Pattern) "=" Expr "in" Expr
+    | "let" is("rec") Pattern list(Pattern) "=" Expr "in" Expr    { P.let_ $2 $3 $4 $6 $8 }
 
 Const :: { P.Expr }
 Const
     : int                                       { P.intConst $1 }
     | "true"                                    { P.boolConst True }
     | "false"                                   { P.boolConst False }
+    | "()"                                      { P.unitConst}
 
 Pattern :: { P.Pattern }
 Pattern
@@ -77,6 +77,7 @@ Pattern
     | "(" PatternModifier ident ":" TypeExpr ")"       { P.pascr $2 $3 $5 }
     | "()"                                      { P.punit }
     | "_"                                       { P.pany }
+    | "(" Pattern ")"                           { $2 }
 
 TypeExpr :: { P.Ty }
 TypeExpr
