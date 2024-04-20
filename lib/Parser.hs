@@ -21,13 +21,12 @@ import Parsetree
 import Text.Megaparsec (MonadParsec (..), choice, many, option, optional, parse, parseMaybe, (<?>))
 import Text.Megaparsec.Char.Lexer (decimal)
 import Text.Megaparsec.Error (errorBundlePretty)
-import Typedtree
 
 type Type = Parsetree.Ty
 
 type Identifier = String
 
-type Result = Either String Program
+type Result = Either String Expr
 
 runWrap p str =
   bimap errorBundlePretty id $

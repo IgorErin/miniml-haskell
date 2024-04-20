@@ -1,6 +1,6 @@
 module ParserUtils where
 
-import Lexer
+import Lexer ( Parser, leftPar, rightPar )
 import Text.Megaparsec (between, choice, optional, try)
 
 -- * Parser Utilities

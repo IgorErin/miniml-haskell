@@ -23,11 +23,21 @@ library:
   #   - Data.MyPkg
   ghc-options: -fwarn-name-shadowing
   dependencies:
+    # TODO remove
     - strict-base >=0.4.0.0
     - megaparsec
     - parser-combinators
     - text
 
+    - array
+    - base
+    - bytestring
+    - containers
+    - mtl
+    - fmt
+  build-tool-depends:
+    - alex
+    - happy
 
 # Test suite
 tests:

@@ -23,11 +23,18 @@ library
   hs-source-dirs:
       lib
   ghc-options: -fwarn-name-shadowing
+  build-tools:
+      alex
+    , happy
   build-depends:
       HUnit
-    , base >=4.9.1.0 && <5
+    , array
+    , base
+    , bytestring
     , containers
+    , fmt
     , megaparsec
+    , mtl
     , parser-combinators
     , raw-strings-qq
     , strict-base >=0.4.0.0

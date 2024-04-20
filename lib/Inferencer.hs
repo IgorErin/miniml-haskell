@@ -141,10 +141,13 @@ infer env (EIf c th el) = do
   return (final_subst, Subst.apply s5 t2)
 infer env (ELet NonRecursive (PVar x _) e1 e2) = do
   (s1, t1) <- infer env e1
+
   let env2 = applyEnv s1 env
   let t2 = generalize env2 t1
+
   (s2, t3) <- infer (extendEnv x t2 env2) e2
   final_subst <- inferOfEither $ Subst.compose s1 s2
+
   return (final_subst, t3)
 infer env (ELet Recursive (PVar x _) e1 e2) = do
   tv <- freshVar
@@ -162,12 +165,11 @@ infer env (ELet _ (PAscr _ _) e1 e2) = undefined
 infer env (ELet _ PUnit e1 e2) = undefined
 infer env (ELet _ PAny e1 e2) = undefined
 
+type Result = Either Error Ty
+
 runInfer :: Parsetree.Expr -> Either Error Ty
 runInfer expr =
   let (Infer f) = infer defaultEnv expr
    in case snd $ f 0 of
         Left err -> Left err
         Right (_, ty) -> Right ty
-
-basicSum :: Int -> Int -> Int
-basicSum x y = x + y
