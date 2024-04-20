@@ -1,1 +1,2 @@
-ELet NonRecursive (PVar PMNone "print_and_close") (ELam (PVar PMNone "file") (EApp (EVar "print_endline") (EApp (EVar "read") (EVar "file")))) (EApp (EVar "close") (EVar "file"))
+let print_and_close file = (print_endline (read file)) in
+(close file)

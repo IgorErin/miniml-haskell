@@ -14,9 +14,19 @@ data PrimType =
   IntType
   | BoolType
   | UnitType
-  deriving (Eq, Show)
+  deriving (Eq)
 
-newtype TypeIdent = TypeIdent Int deriving (Eq, Ord, Show)
+instance Show PrimType where
+  show :: PrimType -> String
+  show IntType = "int"
+  show BoolType = "bool"
+  show UnitType = "unit"
+
+newtype TypeIdent = TypeIdent Int deriving (Eq, Ord)
+
+instance Show TypeIdent where
+  show :: TypeIdent -> String
+  show (TypeIdent n) = show n
 
 intOfIdent :: TypeIdent -> Int
 intOfIdent (TypeIdent n) = n
@@ -62,12 +72,23 @@ data Const
   = ConstInt Int
   | ConstBool Bool
   | ConstUnit
-  deriving (Show, Eq)
+  deriving (Eq)
+
+instance Show Const where
+  show :: Const -> String
+  show (ConstInt n) = show n
+  show (ConstBool b) = show b
+  show ConstUnit = "()"
 
 data RecFlag
   = Recursive
   | NonRecursive
-  deriving (Show, Eq)
+  deriving (Eq)
+
+instance Show RecFlag where
+  show :: RecFlag -> String
+  show Recursive = "rec"
+  show NonRecursive = ""
 
 ----------------------- Pattern --------------------------
 
@@ -76,7 +97,14 @@ data PatternModifier
   | PMLocalExclusive
   | PMOnce
   | PMNone
-  deriving (Show, Eq)
+  deriving (Eq)
+
+instance Show PatternModifier where
+  show :: PatternModifier -> String
+  show PMUnique = "mut"
+  show PMLocalExclusive = "local"
+  show PMOnce = "once"
+  show PMNone = ""
 
 pmUnique :: PatternModifier
 pmUnique = PMUnique
@@ -98,7 +126,15 @@ data Pattern
   | PAscr PatternModifier Ident Ty
   | PUnit
   | PAny
-  deriving (Show, Eq)
+  deriving (Eq)
+
+instance Show Pattern where
+  show :: Pattern -> String
+  show (PVar PMNone i) = i
+  show (PVar m i) =  "(" ++ show m ++ " " ++ i ++ ")"
+  show (PAscr m i t) = "(" ++ show m ++ " " ++ i ++ ": " ++ show t ++ ")"
+  show PUnit = "()"
+  show PAny = "_"
 
 pvar :: PatternModifier -> Ident -> Pattern
 pvar = PVar
@@ -114,13 +150,32 @@ pany = PAny
 
 data Expr
   = EConst Const
-  | EVar String
+  | EVar Ident
   | EBorrow Expr
   | EIf Expr Expr Expr
   | ELam Pattern Expr
   | EApp Expr Expr
   | ELet RecFlag Pattern Expr Expr
-  deriving (Show, Eq)
+  deriving (Eq)
+
+instance Show Expr where
+  show :: Expr -> String
+  show (EConst c) = show c
+  show (EVar n) = n
+  show (EBorrow e) = " &" ++ show e
+  show (EIf g t f) = "if " ++ show g ++ "\nthen" ++ show t ++ "\nelse" ++ show f
+  show (ELam p e) = "fun" ++ show p ++ " -> " ++ show e
+  show (EApp left right) = "(" ++ show left ++ " " ++ show right ++ ")"
+  show (ELet recflag pat expr body) =
+      let grabArgs (ELam p e) =
+            let (ls, b) = grabArgs e
+            in (p : ls, b)
+          grabArgs e = ([], e)
+
+          (pats, expr') = grabArgs expr
+
+          args = unwords $ show <$> pats
+      in "let" ++ show recflag ++ " " ++ show pat ++ " " ++ args ++ " = " ++ show expr' ++ " in\n" ++ show body
 
 occurs_in :: TypeIdent -> Ty -> Bool
 occurs_in = helper

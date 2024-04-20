@@ -1,1 +1,2 @@
-ELet NonRecursive (PVar PMNone "f") (ELam (PAscr PMNone "n" IntType) (EVar "n")) (EConst ConstUnit)
+let f ( n: int) = n in
+()

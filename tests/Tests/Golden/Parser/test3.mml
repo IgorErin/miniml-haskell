@@ -1,1 +1,2 @@
-ELet NonRecursive (PVar PMNone "write_twice") (ELam (PVar PMUnique "x") (EApp (EVar "write2") (EBorrow (EApp (EVar "x") (EBorrow (EApp (EVar "x") (EConst (ConstInt 54)))))))) (EConst ConstUnit)
+let write_twice (mut x) = (write2  &(x  &(x 54))) in
+()

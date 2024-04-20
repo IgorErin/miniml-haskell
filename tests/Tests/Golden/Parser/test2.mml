@@ -1,1 +1,2 @@
-ELet NonRecursive (PVar PMNone "f") (ELam (PVar PMUnique "q") (EVar "q")) (EConst ConstUnit)
+let f (mut q) = q in
+()
