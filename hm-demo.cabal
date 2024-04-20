@@ -13,11 +13,9 @@ library
       Inferencer
       Lexer
       Parser
-      ParserUtils
       Parsetree
       Scheme
       Subst
-      Typedtree
   other-modules:
       Paths_hm_demo
   hs-source-dirs:

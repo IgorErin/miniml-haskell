@@ -18,7 +18,7 @@ executables:
 
 library:
   source-dirs: lib
-  # modules: Parsetree,Typedtree,Scheme, Inferencer
+  # modules: Parsetree,Scheme, Inferencer
   # exposed-modules:
   #   - Data.MyPkg
   ghc-options: -fwarn-name-shadowing

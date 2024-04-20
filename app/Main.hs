@@ -3,7 +3,6 @@ module Main where
 import Inferencer
 import Parsetree
 import Subst
-import Typedtree
 
 -- main :: IO ()
 -- main = do
@@ -20,11 +19,11 @@ import Typedtree
 --   term = ELam (PVar "x") (EApp (EApp (EVar "+") x) x)
 --   x = EVar "x"
 main :: IO ()
-main = do
-  print $ Subst.unify t2 t1
- where
-  t1 = Arrow (TyVar 0) (TyVar 1)
-  t2 = TyVar 0
+main = undefined 
+--   print $ Subst.unify t2 t1
+--  where
+--   t1 = Arrow (TyVar 0) (TyVar 1)
+--   t2 = TyVar 0
 
 -- main :: IO ()
 -- main = do

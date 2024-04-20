@@ -3,37 +3,72 @@
 
 {-# HLINT ignore "Use camelCase" #-}
 {-# HLINT ignore "Avoid lambda" #-}
+{-# LANGUAGE InstanceSigs #-}
 module Parsetree where
 
 import Data.List
 import Data.Set
 import Debug.Trace
 
+data PrimType =
+  IntType
+  | BoolType
+  | UnitType
+  deriving (Eq, Show)
+
+newtype TypeIdent = TypeIdent Int deriving (Eq, Ord, Show)
+
+intOfIdent :: TypeIdent -> Int
+intOfIdent (TypeIdent n) = n
+
+infixr 3 :->
+
 data Ty
-  = Prm String
-  | TyVar Int
-  | Arrow Ty Ty
+  = Prm PrimType
+  | TyVar TypeIdent
+  | Ty :-> Ty
   | TApp Ty Ty
   deriving (Eq)
 
+tint :: Ty
+tint = Prm IntType
+
+tbool :: Ty
+tbool = Prm BoolType
+
+tunit :: Ty
+tunit = Prm UnitType
+
+tvar :: TypeIdent -> Ty
+tvar = TyVar
+
+tarrow :: Ty -> Ty -> Ty
+tarrow = (:->)
+
+tapp :: Ty -> Ty -> Ty
+tapp = TApp
+
 instance Show Ty where
+  show :: Ty -> String
   show !ty = let rez = helper 3 ty in rez
-   where
+    where
     helper 0 _ = "FUCK"
     helper n _ | n < 0 = undefined
-    helper _ (Prm s) = s
+    helper _ (Prm s) = show s
     helper _ (TyVar v) = "'" ++ show v
-    helper n (Arrow left right) = "(" ++ helper (n - 1) left ++ " -> " ++ helper (n - 1) right ++ ")"
+    helper n (left :-> right) = "(" ++ helper (n - 1) left ++ " -> " ++ helper (n - 1) right ++ ")"
 
 data Const
-  = PConst_int Int
-  | PConst_bool Bool
+  = ConstInt Int
+  | ConstBool Bool
   deriving (Show, Eq)
 
 data RecFlag
   = Recursive
   | NonRecursive
   deriving (Show, Eq)
+
+----------------------- Pattern --------------------------
 
 data PatternModifier
   = PMUnique
@@ -42,14 +77,39 @@ data PatternModifier
   | PMNone
   deriving (Show, Eq)
 
+pmUnique :: PatternModifier
+pmUnique = PMUnique
+
+pmLocal :: PatternModifier
+pmLocal = PMUnique
+
+pmOnce :: PatternModifier
+pmOnce = PMUnique
+
+pmNone :: PatternModifier
+pmNone = PMNone
+
+-- Text as Ident
+type Ident = String
+
 data Pattern
-  = PVar String PatternModifier
-  | PAscr String Ty
+  = PVar PatternModifier Ident
+  | PAscr PatternModifier Ident Ty
   | PUnit
   | PAny
   deriving (Show, Eq)
 
-pvar s = PVar s PMNone
+pvar :: PatternModifier -> Ident -> Pattern
+pvar = PVar
+
+pascr :: PatternModifier -> Ident -> Ty -> Pattern
+pascr = PAscr
+
+punit :: Pattern
+punit = PUnit
+
+pany :: Pattern
+pany = PAny
 
 data Expr
   = EConst Const
@@ -61,29 +121,48 @@ data Expr
   | ELet RecFlag Pattern Expr Expr
   deriving (Show, Eq)
 
-econst_int n = EConst (PConst_int n)
-
-elams :: [Pattern] -> Expr -> Expr
-elams xs e = Data.List.foldr ELam e xs
-
-evar = EVar
-
-data StructureItem = SItem RecFlag Pattern Expr deriving (Show, Eq)
-
-newtype Program = Program [StructureItem] deriving (Show, Eq)
-
-(@->) = Arrow
-
-occurs_in :: Int -> Ty -> Bool
+occurs_in :: TypeIdent -> Ty -> Bool
 occurs_in = helper
  where
   helper v (TyVar !x) = x == v
-  helper v (Arrow !l !r) = helper v l || helper v r
+  helper v (!l :-> !r) = helper v l || helper v r
   helper v (Prm _) = False
 
-free_vars :: Ty -> Set Int
+free_vars :: Ty -> Set TypeIdent
 free_vars = helper empty
  where
   helper acc (TyVar v) = Data.Set.insert v acc
   helper acc (Prm _) = acc
-  helper acc (Arrow l r) = helper (helper acc r) l
+  helper acc (l :-> r) = helper (helper acc r) l
+
+-------------------------- Constructors ----------------------------
+
+intConst :: Int -> Expr
+intConst = EConst . ConstInt
+
+boolConst :: Bool -> Expr
+boolConst = EConst . ConstBool
+
+let_ :: Bool -> Pattern -> Expr -> Expr -> Expr
+let_ isRec = ELet $
+  if isRec
+  then Recursive
+  else NonRecursive
+
+var :: Ident -> Expr
+var = EVar
+
+borrow :: Expr -> Expr
+borrow = EBorrow
+
+if_ :: Expr -> Expr -> Expr -> Expr
+if_ = EIf
+
+lam :: Pattern -> Expr -> Expr
+lam = ELam
+
+app :: Expr -> Expr -> Expr
+app = EApp
+
+lams :: [Pattern] -> Expr -> Expr
+lams xs e = Data.List.foldr lam e xs

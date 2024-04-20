@@ -7,7 +7,6 @@ module Lexer(alexScanTokens, Token (..)) where
 
 $digit = 0-9            -- digits
 $alpha = [a-zA-Z]       -- alphabetic characters
-$backSlash = \
 
 @ident = $alpha [$alpha $digit]*
 @number = digit+
@@ -21,6 +20,7 @@ tokens :-
   "="                   { const TEq }
   "("                   { const TLParent }
   ")"                   { const TRParent }
+  "_"                   { const TAny }
 
   "let"                 { const TLet }
   "rec"                 { const TRec }
@@ -34,20 +34,25 @@ tokens :-
 
   "true"                { const TTrue }
   "false"               { const TFalse }
+  "()"                  { const TUnit }
 
   "unit"                { const TUnitType }
   "bool"                { const TBoolType }
   "int"                 { const TIntType }
 
-  @ident                { TIdent }
+  "&"                   { const TBorrow }
 
+  "mut"                 { const TMut }
+  "local"               { const TLocal }
+  "once"                { const TOnce }
+
+  @ident                { TIdent }
 {
 toInt :: String -> Token
 toInt = TInt . read
 
 data Token
   =
-  -- ( )
   TLParent
   | TRParent
   | TColon
@@ -55,19 +60,26 @@ data Token
   | TLet
   | TIn
   | TRec
+  | TAny
 
-  -- if then else
   | TIf
   | TThen
   | TElse
 
   | TTrue
   | TFalse
+  | TUnit
 
   | TUnitType
   | TBoolType
   | TIntType
-  
+
+  | TBorrow
+
+  | TMut
+  | TLocal
+  | TOnce
+
   | TFun
   | TArrow
   | TIdent String
