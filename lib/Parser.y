@@ -55,13 +55,17 @@ Program : Expr                                { $1 }
 
 Expr :: { P.Expr }
 Expr
+    : Expr AtomExpr                                { P.app $1 $2 }
+    | AtomExpr                                     { $1 }
+
+AtomExpr :: { P.Expr }
+AtomExpr
     : Const                                         { $1 }
     | ident                                         { P.var $1 }
     | "(" Expr ")"                                  { $2 }
-    | "&" Expr                                      { P.borrow $2 }
+    | "&" AtomExpr                                  { P.borrow $2 }
     | "if" Expr "then" Expr "else" Expr             { P.if_ $2 $4 $6}
     | "fun" Pattern "->" Expr                       { P.lam $2 $4 }
-    | Expr Expr                                     { P.app $1 $2 }
     | "let" is("rec") Pattern list(Pattern) "=" Expr "in" Expr    { P.let_ $2 $3 $4 $6 $8 }
 
 Const :: { P.Expr }
